@@ -1,0 +1,337 @@
+<!doctype html>  <!-- 声明文档类型-->
+<html>
+<head>
+    <!--声明当前页面的编码集：charset=gbk,gb2312(中文编码),utf-8国际编码-->
+    <meta http-equiv="Content-Type" content="text/html" charset="utf-8">
+    <title>HTMl模板</title> 
+    <meta name="Keyword" content="关键词,关键词">
+    <meta name="description" content="描述">
+    <!--样式-->
+    <style type='text/css'>
+    *{margin:0; padding:0;}
+    ul{list-style:none;}
+    a{text-decoration:none;}
+    .fl{float:left;}
+    .fr{float:right;}
+    .clearfix:after{content:""; display:block; clear:both;}
+
+    body{
+        background: #000;
+    }
+    #box{
+        position:relative;
+        width:300px;
+        height:500px;
+        margin:20px auto;
+        border:10px solid #fff;
+    }
+    h1{
+        margin:40px 0;
+        color:#fff;
+        text-align:center;
+    }
+    #box div{
+        width:180px;
+        margin:50px auto;
+        padding:8px 10px;
+        font-weight: 600;
+        color:blue;
+        text-align:center;
+        background:#fff;
+        border-radius:15px;
+        cursor:pointer;
+    }
+    #box img{
+        position:absolute;
+    }
+
+
+    #box h1.overH1{
+        margin:40px auto;
+        font-size:40px;
+        text-align:center;
+        color:red;
+    }
+    #box div.overDiv{
+        font-size:20px;
+        color:
+    }
+    #box span.overSpan{
+
+    }
+    #box p.overP{
+        width:200px;
+        height:40px;
+        margin:auto;
+        line-height:40px;
+        color:#fff;
+        background: #de56ff;
+        text-align:center;
+        cursor:pointer;
+    }
+    </style>
+</head> 
+<body ondragstart="return false">
+    <div id="box"></div>
+
+<script type="text/javascript">
+
+    (function () {
+        var box = document.getElementById('box'),
+            timer, timer1, count = 0;
+
+        init();
+
+
+        //游戏界面初始化
+        function init() {
+            count = 0;
+            box.innerHTML = '';
+            var h1 = document.createElement('h1');
+            h1.innerHTML = '打飞机V1.0';
+            box.appendChild(h1);
+            var difficult = ['简单','有点简单','有点难','困难难'];
+            for(var i=0; i<4; i++){
+                var div = document.createElement('div');
+                div.innerHTML = difficult[i];
+                //自定义属性区分困难程度
+                div.i = i;
+
+                //还有这种操作？
+                //点击选择不同难度
+                div.onclick = function(e){
+                    start(this.i,e)
+                };
+                box.appendChild(div);
+            }
+        }
+
+        //开始游戏
+        function start(i,e){
+            box.innerHTML = '';
+            enemy(i);
+            Plane(e,i);
+        }
+
+        //生成敌军飞机
+        function enemy(i) {
+            //初始化速度
+            var speed = [1000,800,600,400];
+
+            timer = setInterval(function () {
+                var img = document.createElement('img');
+                img.src = 'images/enemy.png';
+                img.width = 23;
+                img.height = 30;
+                //初始化位置
+                //获取box顶部的那一部分的长度和 距离顶部的高度
+                //为了以后可以换一个位置 把这个写到距离page的距离吧
+                var width = box.clientWidth,
+                    height = box.clientHeight;
+
+                img.style.top = 0;
+                img.style.left = Math.random()*width - img.width/2 +'px';
+                box.appendChild(img);
+                var speed1 = Math.random()*3+1;
+                move();
+                function move(){
+                    //这一段为什么只能加上他上面的
+                    img.style.top = img.offsetTop + speed1 + 'px';
+
+                    if(img.offsetTop >= height-img.height){ //走出去了
+                        box.removeChild(img);
+                    }else{
+                        //子弹和敌军相碰
+                        var biu = box.getElementsByClassName('biubiu');
+                        for(var i=0; i<biu.length; i++){
+                            if(iscollision(biu[i],img)){  //碰到的情况
+                                count++;
+                                //添加特效之后 删除他
+                                boom(img,'');
+                                box.removeChild(img);
+                                box.removeChild(biu[i]);
+                                return false;
+                            }
+                        }
+                        //友军和敌军相撞
+                        var plane = box.getElementsByClassName('Plane')[0];
+                        if(plane){
+                            if(iscollision(plane,img)){ //敌军和友方飞机相撞
+                                boom(plane,'2');
+                                box.removeChild(img);
+                                box.removeChild(plane);
+                                //清除好多的定时器
+                                clearInterval(timer);
+                                clearInterval(timer1);
+
+                                return false;
+                            }
+                        }
+                        //清除这个就行了
+                        if(plane) requestAnimationFrame(move);
+
+                    }
+                }
+            },speed[i]);
+            
+        }
+
+        //生成我军战机 和 子弹
+        function Plane(e,i) {
+            e = e || window.event;
+            var img = document.createElement('img');
+
+            img.className = 'Plane';
+            img.src = 'images/plane.png';
+            img.width = 60;
+            img.height = 36;
+            var top = e.clientY + document.documentElement.scrollTop - getPage(box).top - img.height/2 - box.clientTop/2,
+                left = e.clientX + document.documentElement.scrollLeft - getPage(box).left - img.width/2 - box.clientLeft/2;
+            img.style.top = top + 'px';
+            img.style.left = left + 'px';
+
+            box.appendChild(img);
+
+            //战机移动
+            document.onmousemove = function (e) {
+                e = e || window.event;
+                var maxWidth = box.clientWidth - img.width/2,
+                    maxHeight = box.clientHeight - img.height/2,
+                    //限制最大最小
+                    mTop,mLeft;
+                //坐标 = 鼠标坐标 + 滚动高度 - 盒子距离顶部的距离 - 自身宽高的一半 - 边框的一半
+                var top = e.clientY + document.documentElement.scrollTop - getPage(box).top - img.height/2 - box.clientTop,
+                    left = e.clientX + document.documentElement.scrollLeft - getPage(box).left - img.width/2 - box.clientLeft;
+
+                mTop = Math.min(top,maxHeight);
+                mTop = Math.max(-img.height/2,mTop);
+                mLeft = Math.max(-img.width/2,left);
+                mLeft = Math.min(maxWidth,mLeft);
+
+                img.style.top = mTop + 'px';
+                img.style.left = mLeft + 'px';
+
+            };
+
+            //把难度传过来，初始化子弹速度
+            var arr = [200,250,300,40];
+            //发射子弹
+            timer1 = setInterval(Biu,arr[i]);
+
+            //发射子弹
+            function Biu() {
+                //获取一下飞机的坐标位置吧
+                var Plane = box.getElementsByClassName('Plane')[0],
+                    top = Plane.offsetTop,
+                    left = Plane.offsetLeft;
+
+                var img = document.createElement('img');
+                img.className = 'biubiu';
+                img.src = 'images/bullet.png';
+                img.width = 6;
+                img.height = 22;
+
+                //确定子弹的位置
+                //相对于飞机？
+                img.style.top = top + 'px';
+                img.style.left = left + Plane.width/2 - img.width/2 + 'px';
+                box.appendChild(img);
+                //给了一个8的速度
+                var BiuSpeed = 8;
+
+                //子弹移动
+                BiuMove();
+                function BiuMove() {
+                    img.style.top = img.offsetTop - BiuSpeed + 'px';
+                    if(img.offsetTop < 0){
+                        box.removeChild(img);
+                    }else{
+                        requestAnimationFrame(BiuMove);
+                    }
+                }
+            }
+        }
+        
+        
+        //判断是否碰撞的函数
+        function iscollision(plane,enemy) {        //返回布尔值
+            var pTop1 = plane.offsetTop,
+                pBottom1 = pTop1 + plane.height,
+                pLeft1 = plane.offsetLeft,
+                pRight1 = pLeft1 + plane.width;
+            var eTop2 = enemy.offsetTop,
+                eBottom2 = eTop2 + enemy.height,
+                eLeft2 = enemy.offsetLeft,
+                eRight2 = eLeft2 + enemy.width;
+            //碰到返回true  碰不到返回false
+            return !(pTop1>eBottom2 || pBottom1<eTop2 || pLeft1>eRight2 || pRight1<eLeft2);
+        }
+
+
+
+        //爆炸特效
+        function boom(obj,n) {
+            var boom1 = document.createElement('img');
+            boom1.src = 'images/boom'+n+'.png';
+            boom1.width = obj.width;
+            boom1.height = obj.height;
+            boom1.style.top = obj.style.top;
+            boom1.style.left = obj.style.left;
+
+            box.appendChild(boom1);
+            setTimeout(function(){
+                box.removeChild(boom1);
+                n && gaveover();
+
+            },n?2000:200)
+        }
+
+        //结束页面
+        function gaveover() {
+            box.innerHTML = '';
+            var wrap = document.createElement('div');
+                h1 = document.createElement('h1'),
+                div = document.createElement('div'),
+                span = document.createElement('span'),
+                p = document.createElement('p');
+
+            var score = 100;
+            h1.className = 'overH1';
+            div.className = 'overDiv';
+            span.className = 'overSpan';
+            p.className = 'overP';
+            h1.innerHTML = 'Game Over';
+            div.innerHTML = '得分 :';
+            span.innerHTML = count*score;
+            p.innerHTML = '再来一局';
+            p.onclick = function(){
+                init();
+            };
+
+            div.appendChild(span);
+            box.appendChild(h1);
+            box.appendChild(div);
+            box.appendChild(p);
+
+        }
+
+        //距离page的距离
+        function getPage(obj){
+            var json = {
+                top : 0,
+                left : 0
+            };
+            while(obj !== document.body){
+                json.top += obj.offsetTop;
+                json.left += obj.offsetLeft;
+                obj = obj.offsetParent;
+            }
+            return json;
+        }
+
+    })()
+    
+</script>
+	
+</body>	
+</html>
